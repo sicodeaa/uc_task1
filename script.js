@@ -44,36 +44,66 @@ const getPosts = async () => {
 };
 getPosts();
 
-// CREATE - Insert A New Post
-// Method: POST
+
 addPostForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  try {
-    const res = await fetch('https://dummyjson.com/posts/add', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        title: titleValue.value,
-        body: bodyValue.value,
-        userId: Math.floor(Math.random() * 200) + 1,
-      })
-    });
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(errorText);
+
+  if (currentUserId) {
+    // Update existing post
+    // Method: 'PATCH'
+    try {
+      const res = await fetch(`${url}/${currentUserId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: titleValue.value,
+          body: bodyValue.value,
+        })
+      });
+      if (!res.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const updatedPost = await res.json();
+      
+      postsArray = postsArray.map(post => post.userId == currentUserId ? updatedPost : post);
+      renderPosts(postsArray); 
+      currentUserId = null; 
+    } catch (error) {
+      console.error('Error:', error);
     }
-    const data = await res.json();
-    postsArray.push(data); 
-    renderPosts(postsArray); 
-  } 
-  catch (error) {
-    console.error('Fetch error:', error);
+  } else {
+    // CREATE - Insert a new post
+    // Method: POST
+    try {
+      const res = await fetch('https://dummyjson.com/posts/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: titleValue.value,
+          body: bodyValue.value,
+          userId: Math.floor(Math.random() * 200) + 1,
+        })
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
+      const data = await res.json();
+      postsArray.push(data); 
+      renderPosts(postsArray); 
+    } 
+    catch (error) {
+      console.error('Fetch error:', error);
+    }
   }
-  // reset input field to empty
+
   titleValue.value = '';
   bodyValue.value = '';
+  currentUserId = null;
 });
 
 postsList.addEventListener('click', (e) => {
@@ -87,6 +117,7 @@ postsList.addEventListener('click', (e) => {
 
     if (deleteButtonIsPressed) {
       // DELETE - Remove existing post
+      // Method: DELETE
       fetch(`${url}/${userId}`, {
         method: 'DELETE',
       })
@@ -114,39 +145,4 @@ postsList.addEventListener('click', (e) => {
       currentUserId = userId; 
     }
   }
-});
-
-// Update - Update the existing post
-// Method: PATCH
-btnSubmit.addEventListener('click', (e) => {
-  e.preventDefault();
-  if (currentUserId) {
-    fetch(`${url}/${currentUserId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        title: titleValue.value,
-        body: bodyValue.value,
-      })
-    })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error('Network response was not ok');
-      }
-      return res.json();
-    })
-    .then(updatedPost => {
-      
-      postsArray = postsArray.map(post => post.userId == currentUserId ? updatedPost : post);
-      renderPosts(postsArray); 
-      currentUserId = null; 
-    })
-    .catch(error => console.error('Error:', error));
-  }
-  
-  // reset input field to empty
-  titleValue.value = '';
-  bodyValue.value = '';
 });
